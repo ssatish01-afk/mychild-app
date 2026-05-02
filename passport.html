@@ -1,452 +1,263 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyChild Health Passport</title>
-
+<!-- Firebase SDK (compat version - works without ES modules) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <style>
-  :root{
-    --bg:#F4F7F2;
-    --header:#4E6E5D;
-    --ink:#111814;
-    --muted:#3F4743;
-    --subtle:#6B746F;
-    --accent:#20865A;
-    --accent-bg:#E9F7EE;
-    --border:#E7ECE6;
-    --orange:#D86422;
-    --orange-bg:#FFF0E5;
-    --danger:#EF6B6B;
-    --danger-bg:#FFECEC;
-    --blue:#1456C8;
-    --blue-bg:#EFF6FF;
-    --card:#FFFFFF;
-  }
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    background:var(--bg);
-    color:var(--ink);
-    min-height:100vh;
-    padding:14px;
-  }
-  .page{max-width:760px;margin:0 auto}
-  .shell{
-    background:rgba(255,255,255,.72);
-    border:1px solid var(--border);
-    border-radius:28px;
-    box-shadow:0 12px 34px rgba(0,0,0,.07);
-    overflow:hidden;
-  }
-  .top{
-    background:linear-gradient(135deg,#4E6E5D,#395445);
-    color:white;
-    padding:24px 22px 22px;
-  }
-  .brand{font-size:13px;font-weight:800;letter-spacing:.7px;opacity:.78;text-transform:uppercase}
-  .child-name{font-size:30px;font-weight:900;margin-top:10px;line-height:1.05}
-  .child-meta{font-size:13px;margin-top:8px;color:rgba(255,255,255,.82);font-weight:650}
-  .top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
-  .verified{
-    white-space:nowrap;
-    display:inline-flex;align-items:center;gap:6px;
-    padding:7px 10px;border-radius:999px;
-    background:rgba(255,255,255,.16);
-    border:1px solid rgba(255,255,255,.24);
-    font-size:12px;font-weight:850;
-  }
-  .content{padding:16px}
-  .status-card{
-    background:white;border:1px solid var(--border);
-    border-radius:22px;padding:16px;margin-bottom:14px;
-  }
-  .step{padding:8px 10px;margin:5px 0;border-radius:12px;font-size:13px;font-weight:700}
-  .pending{background:#F5F0E8;color:var(--muted)}
-  .ok{background:var(--accent-bg);color:var(--accent)}
-  .fail{background:var(--danger-bg);color:#8A2525;word-break:break-word}
-  .section{
-    background:white;
-    border:1px solid var(--border);
-    border-radius:24px;
-    padding:16px;
-    margin-bottom:14px;
-    box-shadow:0 7px 18px rgba(0,0,0,.035);
-  }
-  .section-head{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
-    margin-bottom:12px;
-  }
-  .section-title{
-    display:flex;align-items:center;gap:10px;
-    font-size:16px;font-weight:900;color:var(--ink);
-  }
-  .icon{
-    width:36px;height:36px;border-radius:14px;
-    display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);
-    font-size:18px;flex-shrink:0;
-  }
-  .count-badge{
-    background:var(--accent-bg);
-    color:var(--accent);
-    border-radius:999px;
-    padding:5px 9px;
-    font-size:12px;
-    font-weight:900;
-  }
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-  .stat{
-    background:#F8FBF8;
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:12px;
-  }
-  .snum{font-size:22px;font-weight:950;color:var(--ink)}
-  .slbl{font-size:12px;color:var(--muted);font-weight:750;margin-top:2px}
-  .row{
-    display:flex;justify-content:space-between;gap:12px;
-    padding:10px 0;border-bottom:1px solid #EEF2ED;
-  }
-  .row:last-child{border-bottom:0}
-  .lbl{font-size:13px;color:var(--muted);font-weight:700}
-  .val{font-size:13px;color:var(--ink);font-weight:850;text-align:right;word-break:break-word}
-  .pbar{height:10px;background:#E8E6DE;border-radius:999px;overflow:hidden;margin:12px 0 4px;display:flex}
-  .seg-done{background:#2EAD73}.seg-due{background:#F4BE45}.seg-overdue{background:var(--danger)}.seg-rest{background:#E8E6DE}
-  .item{
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:12px;
-    margin-top:9px;
-    background:#FBFDFB;
-  }
-  .item-title{font-size:14px;font-weight:900;color:var(--ink);line-height:1.25}
-  .item-sub{font-size:12px;color:var(--muted);font-weight:650;margin-top:4px;line-height:1.35}
-  .pill{
-    display:inline-flex;align-items:center;
-    padding:4px 8px;border-radius:999px;font-size:11px;font-weight:900;
-    margin-top:8px;margin-right:6px;
-  }
-  .pill.green{background:var(--accent-bg);color:var(--accent)}
-  .pill.orange{background:var(--orange-bg);color:var(--orange)}
-  .pill.red{background:var(--danger-bg);color:#A73737}
-  .pill.blue{background:var(--blue-bg);color:var(--blue)}
-  .empty{
-    padding:14px;border-radius:18px;background:#F8FBF8;
-    color:var(--subtle);font-size:13px;font-weight:650;border:1px dashed var(--border);
-  }
-  .footer{
-    text-align:center;font-size:11px;color:var(--subtle);
-    padding:14px 16px 18px;line-height:1.45;
-  }
-  .footer a{color:var(--accent);font-weight:800;text-decoration:none}
-  .print-btn{
-    width:100%;border:0;background:var(--header);color:white;
-    border-radius:18px;padding:14px;font-size:14px;font-weight:900;
-    margin-bottom:14px;
-  }
-  @media print{
-    body{padding:0;background:white}
-    .shell{box-shadow:none;border:0;border-radius:0}
-    .print-btn,.footer a{display:none}
-    .section{break-inside:avoid}
-  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; background:#F5F0E8; min-height:100vh; padding:16px; }
+  .card { background:white; border-radius:20px; padding:24px; max-width:480px;
+          margin:0 auto; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+  .step { padding:8px 12px; margin:4px 0; border-radius:8px; font-size:13px; }
+  .pending { background:#F5F0E8; color:#5A6360; }
+  .ok      { background:#D4EDD4; color:#2A5A2A; }
+  .fail    { background:#FCEAEA; color:#A04230; word-break:break-all; }
+  .header  { background:#1C2320; border-radius:14px; padding:20px;
+             margin-bottom:16px; color:white; }
+  .app-name  { font-size:20px; font-weight:800; }
+  .app-sub   { font-size:11px; color:rgba(255,255,255,0.5); }
+  .child-name{ font-size:26px; font-weight:800; margin-top:12px; }
+  .child-meta{ font-size:12px; color:rgba(255,255,255,0.65); margin-top:4px; }
+  .badge { display:inline-block; background:#1D9E75; color:white; font-size:11px;
+           padding:3px 10px; border-radius:20px; margin-top:8px; }
+  .section { margin-bottom:16px; }
+  .stitle  { font-size:10px; font-weight:700; letter-spacing:1.2px; color:#8B938F;
+             text-transform:uppercase; margin-bottom:8px; }
+  .row { display:flex; justify-content:space-between; padding:7px 0;
+         border-bottom:1px solid #F0EDE6; }
+  .lbl { font-size:13px; color:#5A6360; }
+  .val { font-size:13px; font-weight:600; color:#1C2320; }
+  .stats { display:flex; gap:8px; margin:8px 0; }
+  .stat  { flex:1; background:#F5F0E8; border-radius:10px; padding:8px; text-align:center; }
+  .snum  { font-size:18px; font-weight:800; color:#1C2320; }
+  .slbl  { font-size:10px; color:#8B938F; }
+  .pbar  { background:#F0EDE6; border-radius:4px; height:6px; margin:8px 0; overflow:hidden; }
+  .pfill { height:100%; background:#1D9E75; border-radius:4px; }
+  .vitem { display:flex; align-items:center; gap:8px; padding:7px 0;
+           border-bottom:1px solid #F0EDE6; }
+  .vdot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .vname { font-size:13px; color:#1C2320; flex:1; }
+  .vdate { font-size:11px; color:#8B938F; }
+  .hitem { padding:8px 0; border-bottom:1px solid #F0EDE6; }
+  .footer{ text-align:center; font-size:11px; color:#8B938F;
+           margin-top:16px; padding-top:12px; border-top:1px solid #F0EDE6; }
+  .note  { background:#F5F0E8; border-radius:10px; padding:12px;
+           font-size:12px; color:#5A6360; margin-top:8px; }
 </style>
 </head>
-
 <body>
-<div class="page">
-  <div class="shell">
-    <div id="status" class="content">
-      <div class="status-card"></div>
-    </div>
-    <div id="content"></div>
-    <div class="footer">
-      Generated by MyChild App · Temporary read-only medical view<br/>
-      <a href="https://ssatish01-afk.github.io/mychild-app/privacy_policy.html">Privacy Policy</a>
-    </div>
+<div class="card">
+  <div id="status"></div>
+  <div id="content"></div>
+  <div class="footer">
+    Generated by MyChild App · Valid for 30 minutes<br>
+    <a href="https://ssatish01-afk.github.io/mychild-app/privacy_policy.html"
+       style="color:#1D9E75;">Privacy Policy</a>
   </div>
 </div>
 
 <script>
-const statusEl = document.querySelector('.status-card');
-const contentEl = document.getElementById('content');
+  const statusEl  = document.getElementById('status');
+  const contentEl = document.getElementById('content');
 
-function esc(v){
-  if(v === null || v === undefined || v === '') return '—';
-  return String(v).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
-}
-
-function addStep(id,text,type){
-  let el = document.getElementById(id);
-  if(!el){ el=document.createElement('div'); el.id=id; statusEl.appendChild(el); }
-  el.className='step '+type;
-  el.textContent=text;
-}
-
-function parseDate(v){
-  if(!v) return null;
-  if(v.toDate) return v.toDate();
-  if(v.seconds) return new Date(v.seconds*1000);
-  if(typeof v === 'string') {
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
+  function addStep(id, text, type) {
+    let el = document.getElementById(id);
+    if (!el) { el = document.createElement('div'); el.id = id; statusEl.appendChild(el); }
+    el.className = 'step ' + type;
+    el.textContent = text;
   }
-  if(v.value && typeof v.value === 'string') {
-    const d = new Date(v.value);
-    return isNaN(d.getTime()) ? null : d;
+
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts.seconds * 1000);
+    return d.toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
   }
-  return null;
-}
 
-function fmtDate(v){
-  const d = parseDate(v);
-  if(!d) return '—';
-  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-}
+  async function loadPassport() {
+    try {
+      addStep('s1', '✓ Page loaded', 'ok');
 
-function ageFromDob(dob){
-  const d = parseDate(dob);
-  if(!d) return '—';
-  const now = new Date();
-  let months = (now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
-  if(now.getDate() < d.getDate()) months--;
-  const y = Math.floor(months/12);
-  const m = Math.max(0, months%12);
-  if(y<=0) return `${m} months`;
-  if(m===0) return `${y} years`;
-  return `${y} years ${m} months`;
-}
+      // Get token from URL
+      const params = new URLSearchParams(window.location.search);
+      let raw = params.get('t');
+      if (!raw) { addStep('s2','✗ No token in URL','fail'); return; }
 
-function firstNonEmpty(obj, keys){
-  for(const k of keys){
-    if(obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
-  }
-  return '';
-}
+      let token = raw;
+      try { const p = JSON.parse(decodeURIComponent(raw)); token = p.token || raw; } catch(_) {}
+      addStep('s2', '✓ Token found: ' + token.substring(0,25) + '...', 'ok');
 
-function statusPill(status){
-  const s = (status || 'upcoming').toLowerCase();
-  if(s === 'done') return `<span class="pill green">Given</span>`;
-  if(s === 'overdue') return `<span class="pill red">Overdue</span>`;
-  if(s === 'due') return `<span class="pill orange">Due</span>`;
-  if(s === 'skipped') return `<span class="pill blue">Skipped</span>`;
-  return `<span class="pill blue">Upcoming</span>`;
-}
+      // Init Firebase
+      addStep('s3', '⏳ Connecting to Firebase...', 'pending');
+      const app = firebase.initializeApp({
+        apiKey: "AIzaSyAYp9WpYrqOlGHcn6vcJEb7gxT91_HduPs",
+        authDomain: "child-health-passport.firebaseapp.com",
+        projectId: "child-health-passport",
+        storageBucket: "child-health-passport.firebasestorage.app",
+        messagingSenderId: "387891334117",
+        appId: "1:387891334117:web:7ccdd29d94b0009c12fd0c"
+      });
+      const db   = firebase.firestore();
+      const auth = firebase.auth();
+      addStep('s3', '✓ Firebase connected', 'ok');
 
-function section(title, icon, count, body){
-  return `<div class="section">
-    <div class="section-head">
-      <div class="section-title"><span class="icon">${icon}</span><span>${title}</span></div>
-      ${count !== undefined ? `<span class="count-badge">${count}</span>` : ''}
-    </div>
-    ${body}
-  </div>`;
-}
+      // Sign in anonymously
+      addStep('s4', '⏳ Authenticating...', 'pending');
+      await auth.signInAnonymously();
+      addStep('s4', '✓ Authenticated', 'ok');
 
-function item(title, sub, pills=''){
-  return `<div class="item">
-    <div class="item-title">${esc(title)}</div>
-    ${sub ? `<div class="item-sub">${sub}</div>` : ''}
-    ${pills}
-  </div>`;
-}
+      // Verify token
+      addStep('s5', '⏳ Verifying token...', 'pending');
+      const tokenDoc = await db.collection('accessTokens').doc(token).get();
+      if (!tokenDoc.exists) { addStep('s5','✗ Token not found','fail'); return; }
 
-function renderPassport(tokenData){
-  const pd = tokenData.passportData || {};
-  const child = pd.child || {};
-  const sections = pd.sections || {};
+      const tokenData = tokenDoc.data();
+      const expiresAt = tokenData.expiresAt.toDate();
+      if (new Date() > expiresAt) {
+        addStep('s5','✗ QR code expired. Please generate a new one.','fail'); return;
+      }
+      addStep('s5', '✓ Token valid', 'ok');
 
-  const vaccines = sections.vaccines || [];
-  const history = sections.medicalHistory || [];
-  const labs = sections.labReports || [];
-  const growth = sections.growth || [];
-  const docs = sections.documents || [];
+      // Load child data
+      addStep('s6', '⏳ Loading child data...', 'pending');
+      const childId  = tokenData.childId;
+      const childDoc = await db.collection('children').doc(childId).get();
+      if (!childDoc.exists) { addStep('s6','✗ Child not found','fail'); return; }
+      const child = childDoc.data();
+      addStep('s6', '✓ Loaded: ' + child.fullName, 'ok');
 
-  const childName = firstNonEmpty(child, ['fullName','name']) || 'Child';
-  const uniqueId = firstNonEmpty(child, ['uniqueId','id']);
-  const sex = firstNonEmpty(child, ['sex']);
-  const bloodGroup = firstNonEmpty(child, ['bloodGroup']);
-  const dob = firstNonEmpty(child, ['dateOfBirth','dob']);
-  const age = firstNonEmpty(child, ['age']) || ageFromDob(dob);
+      // Load health data
+      addStep('s7', '⏳ Loading health records...', 'pending');
+      const [vaccSnap, growthSnap, histSnap] = await Promise.all([
+        db.collection('children').doc(childId).collection('vaccines').get(),
+        db.collection('children').doc(childId).collection('growthEntries').get(),
+        db.collection('children').doc(childId).collection('medicalHistory').get(),
+      ]);
 
-  const done = vaccines.filter(v => (v.status||'').toLowerCase()==='done').length;
-  const due = vaccines.filter(v => ['due','upcoming'].includes((v.status||'').toLowerCase())).length;
-  const overdue = vaccines.filter(v => (v.status||'').toLowerCase()==='overdue').length;
-  const skipped = vaccines.filter(v => (v.status||'').toLowerCase()==='skipped').length;
-  const total = vaccines.length;
-  const pct = total ? Math.round(done/total*100) : 0;
+      const vaccines = vaccSnap.docs.map(d => d.data());
+      vaccines.sort((a,b) => (a.scheduledAgeMonths||0)-(b.scheduledAgeMonths||0));
 
-  const doneW = total ? done : 0;
-  const dueW = total ? due : 0;
-  const overdueW = total ? overdue : 0;
-  const skippedW = total ? skipped : 1;
+      const growth = growthSnap.docs.map(d => d.data());
+      growth.sort((a,b) => (b.date?.seconds||0)-(a.date?.seconds||0));
 
-  let html = `
-    <div class="top">
-      <div class="top-row">
-        <div>
-          <div class="brand">MyChild Health Passport</div>
-          <div class="child-name">${esc(childName)}</div>
-          <div class="child-meta">${esc(age)} · ${sex==='M'?'Boy':sex==='F'?'Girl':esc(sex)}${bloodGroup ? ' · '+esc(bloodGroup) : ''}</div>
-        </div>
-        <div class="verified">✓ Verified</div>
+      const history = histSnap.docs.map(d => d.data());
+      history.sort((a,b) => (b.date?.seconds||0)-(a.date?.seconds||0));
+
+      addStep('s7', `✓ ${vaccines.length} vaccines · ${growth.length} growth · ${history.length} history`, 'ok');
+
+      // Hide status steps and show passport
+      statusEl.style.display = 'none';
+
+      // Calculate age
+      const dob    = child.dateOfBirth.toDate();
+      const ageMs  = Date.now() - dob.getTime();
+      const yrs    = Math.floor(ageMs/(365.25*24*3600*1000));
+      const mos    = Math.floor((ageMs%(365.25*24*3600*1000))/(30.44*24*3600*1000));
+      const ageStr = yrs>0 ? yrs+'y '+mos+'m' : mos+' months';
+
+      const done    = vaccines.filter(v=>v.status==='done').length;
+      const overdue = vaccines.filter(v=>v.status==='overdue').length;
+      const total   = vaccines.length;
+      const pct     = total>0 ? Math.round(done/total*100) : 0;
+
+      let html = `
+      <div class="header">
+        <div class="app-name">MyChild</div>
+        <div class="app-sub">Health Passport</div>
+        <div class="child-name">${child.fullName}</div>
+        <div class="child-meta">${ageStr} · ${child.sex==='M'?'Boy':'Girl'}${child.bloodGroup?' · '+child.bloodGroup:''}</div>
+        <div class="badge">✓ Verified Passport</div>
       </div>
-    </div>
-    <div class="content">
-      <button class="print-btn" onclick="window.print()">Download / Print Report</button>
-
-      ${section('Child Summary','👶',undefined,`
-        <div class="row"><span class="lbl">Name</span><span class="val">${esc(childName)}</span></div>
-        <div class="row"><span class="lbl">Passport ID</span><span class="val">${esc(uniqueId)}</span></div>
-        <div class="row"><span class="lbl">Date of birth</span><span class="val">${fmtDate(dob)}</span></div>
-        <div class="row"><span class="lbl">Age</span><span class="val">${esc(age)}</span></div>
-        <div class="row"><span class="lbl">Blood group</span><span class="val">${esc(bloodGroup)}</span></div>
-      `)}
-
-      ${section('Vaccine Details','💉',`${done}/${total}`,`
-        <div class="grid">
-          <div class="stat"><div class="snum" style="color:#20865A">${done}</div><div class="slbl">Given</div></div>
-          <div class="stat"><div class="snum" style="color:#D86422">${due}</div><div class="slbl">Due / Upcoming</div></div>
-          <div class="stat"><div class="snum" style="color:#EF6B6B">${overdue}</div><div class="slbl">Overdue</div></div>
-          <div class="stat"><div class="snum">${pct}%</div><div class="slbl">Complete</div></div>
-        </div>
-        <div class="pbar">
-          <div class="seg-done" style="flex:${doneW}"></div>
-          <div class="seg-due" style="flex:${dueW}"></div>
-          <div class="seg-overdue" style="flex:${overdueW}"></div>
-          <div class="seg-rest" style="flex:${skippedW}"></div>
-        </div>
-        ${vaccines.length ? vaccines.map(v => {
-          const name = firstNonEmpty(v,['name','shortName','vaccineName']) || 'Vaccine';
-          const date = v.status==='done' ? fmtDate(firstNonEmpty(v,['completedDate','givenDate'])) : fmtDate(firstNonEmpty(v,['dueDate','scheduledDate']));
-          const sub = `${date !== '—' ? date : ''}${v.scheduledAgeMonths !== undefined ? ` · ${v.scheduledAgeMonths} months` : ''}`;
-          return item(name, sub, statusPill(v.status));
-        }).join('') : `<div class="empty">No vaccine records available.</div>`}
-      `)}
-
-      ${section('Medical History','🩺',history.length,`
-        ${history.length ? history.map(h => {
-          const type = firstNonEmpty(h,['type','category']);
-          const title = firstNonEmpty(h,['condition','name','allergen','medicationName','treatment','title']) || type || 'Medical record';
-          const date = fmtDate(firstNonEmpty(h,['date','diagnosedDate','startDate','createdAt']));
-          const details = [
-            type ? `Type: ${esc(type)}` : '',
-            firstNonEmpty(h,['severity']) ? `Severity: ${esc(firstNonEmpty(h,['severity']))}` : '',
-            firstNonEmpty(h,['reaction']) ? `Reaction: ${esc(firstNonEmpty(h,['reaction']))}` : '',
-            firstNonEmpty(h,['dosage']) ? `Dosage: ${esc(firstNonEmpty(h,['dosage']))}` : '',
-            firstNonEmpty(h,['frequency']) ? `Frequency: ${esc(firstNonEmpty(h,['frequency']))}` : '',
-            firstNonEmpty(h,['doctor','prescribedBy']) ? `Doctor: ${esc(firstNonEmpty(h,['doctor','prescribedBy']))}` : '',
-            date !== '—' ? `Date: ${date}` : '',
-            firstNonEmpty(h,['notes','description']) ? esc(firstNonEmpty(h,['notes','description'])) : ''
-          ].filter(Boolean).join('<br>');
-          const sev = String(firstNonEmpty(h,['severity'])).toLowerCase();
-          const pill = sev==='severe' ? '<span class="pill red">Severe</span>' : type ? `<span class="pill green">${esc(type)}</span>` : '';
-          return item(title, details, pill);
-        }).join('') : `<div class="empty">No medical history records available.</div>`}
-      `)}
-
-      ${section('Lab Reports','🧪',labs.length,`
-        ${labs.length ? labs.map(r => {
-          const title = firstNonEmpty(r,['reportName','title','testName','name']) || 'Lab report';
-          const date = fmtDate(firstNonEmpty(r,['reportDate','date','createdAt','uploadedAt']));
-          const status = firstNonEmpty(r,['status','resultStatus','aiStatus']);
-          const details = [
-            date !== '—' ? `Date: ${date}` : '',
-            status ? `Status: ${esc(status)}` : '',
-            firstNonEmpty(r,['summary','aiSummary','analysis','notes']) ? esc(firstNonEmpty(r,['summary','aiSummary','analysis','notes'])) : '',
-            firstNonEmpty(r,['fileName']) ? `File: ${esc(firstNonEmpty(r,['fileName']))}` : ''
-          ].filter(Boolean).join('<br>');
-          const pill = status ? `<span class="pill blue">${esc(status)}</span>` : '<span class="pill green">Report</span>';
-          return item(title, details, pill);
-        }).join('') : `<div class="empty">No lab reports available.</div>`}
-      `)}
-
-      ${section('Growth','📈',growth.length,`
-        ${growth.length ? growth.slice(0,8).map(g => {
-          const date = fmtDate(firstNonEmpty(g,['measurementDate','date','createdAt']));
-          const parts = [
-            g.weightKg !== undefined ? `Weight: ${esc(g.weightKg)} kg` : '',
-            g.heightCm !== undefined ? `Height: ${esc(g.heightCm)} cm` : '',
-            g.bmi !== undefined ? `BMI: ${esc(g.bmi)}` : '',
-            firstNonEmpty(g,['bmiStatus','status']) ? `Status: ${esc(firstNonEmpty(g,['bmiStatus','status']))}` : ''
-          ].filter(Boolean).join('<br>');
-          return item(date, parts, '<span class="pill green">Measurement</span>');
-        }).join('') : `<div class="empty">No growth records available.</div>`}
-      `)}
-
-      ${docs.length ? section('Uploaded Documents','📁',docs.length,`
-        ${docs.map(d => {
-          const title = firstNonEmpty(d,['title','name','fileName','documentName']) || 'Document';
-          const date = fmtDate(firstNonEmpty(d,['createdAt','uploadedAt','date']));
-          return item(title, date !== '—' ? `Uploaded: ${date}` : '', '<span class="pill blue">Document</span>');
-        }).join('')}
-      `) : ''}
 
       <div class="section">
-        <div class="section-title"><span class="icon">🔒</span><span>Access Information</span></div>
-        <div class="row"><span class="lbl">Valid until</span><span class="val">${fmtDate(tokenData.expiresAt)} ${parseDate(tokenData.expiresAt)?.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) || ''}</span></div>
-        <div class="row"><span class="lbl">Access type</span><span class="val">Read-only doctor view</span></div>
+        <div class="stitle">Child Information</div>
+        <div class="row"><span class="lbl">Full Name</span><span class="val">${child.fullName}</span></div>
+        <div class="row"><span class="lbl">Date of Birth</span>
+          <span class="val">${dob.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</span></div>
+        <div class="row"><span class="lbl">Age</span><span class="val">${ageStr}</span></div>
+        ${child.bloodGroup?`<div class="row"><span class="lbl">Blood Group</span><span class="val">${child.bloodGroup}</span></div>`:''}
+        <div class="row"><span class="lbl">Passport ID</span><span class="val" style="font-size:11px">${child.uniqueId||'—'}</span></div>
       </div>
-    </div>
-  `;
 
-  contentEl.innerHTML = html;
-}
+      <div class="section">
+        <div class="stitle">Immunisation</div>
+        <div class="stats">
+          <div class="stat"><div class="snum" style="color:#1D9E75">${done}</div><div class="slbl">Given</div></div>
+          <div class="stat"><div class="snum" style="color:#E88080">${overdue}</div><div class="slbl">Overdue</div></div>
+          <div class="stat"><div class="snum">${total-done-overdue}</div><div class="slbl">Upcoming</div></div>
+          <div class="stat"><div class="snum">${pct}%</div><div class="slbl">Complete</div></div>
+        </div>
+        <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>`;
 
-async function loadPassport(){
-  try{
-    addStep('s1','✓ Page loaded','ok');
+      const doneVacc = vaccines.filter(v=>v.status==='done').slice(-8);
+      if (doneVacc.length>0) {
+        html += `<div style="margin-top:10px"><div class="stitle">Recently Given</div>`;
+        doneVacc.forEach(v => {
+          html += `<div class="vitem">
+            <div class="vdot" style="background:#1D9E75"></div>
+            <div class="vname">${v.name}</div>
+            <div class="vdate">${fmtDate(v.completedDate)}</div>
+          </div>`;
+        });
+        html += '</div>';
+      }
 
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('t');
-    if(!token){ addStep('s2','✗ No token in URL','fail'); return; }
-    addStep('s2','✓ Token found','ok');
+      const ovList = vaccines.filter(v=>v.status==='overdue').slice(0,5);
+      if (ovList.length>0) {
+        html += `<div style="margin-top:8px"><div class="stitle">Overdue (${overdue})</div>`;
+        ovList.forEach(v => {
+          html += `<div class="vitem">
+            <div class="vdot" style="background:#E88080"></div>
+            <div class="vname">${v.name}</div>
+          </div>`;
+        });
+        html += '</div>';
+      }
+      html += '</div>';
 
-    addStep('s3','⏳ Connecting to Firebase...','pending');
-    firebase.initializeApp({
-      apiKey: "AIzaSyAYp9WpYrqOlGHcn6vcJEb7gxT91_HduPs",
-      authDomain: "child-health-passport.firebaseapp.com",
-      projectId: "child-health-passport",
-      storageBucket: "child-health-passport.firebasestorage.app",
-      messagingSenderId: "387891334117",
-      appId: "1:387891334117:web:7ccdd29d94b0009c12fd0c"
-    });
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-    addStep('s3','✓ Firebase connected','ok');
+      // Growth
+      if (growth.length>0) {
+        const g = growth[0];
+        html += `<div class="section">
+          <div class="stitle">Latest Growth · ${fmtDate(g.date)}</div>
+          ${g.weightKg?`<div class="row"><span class="lbl">Weight</span><span class="val">${g.weightKg} kg</span></div>`:''}
+          ${g.heightCm?`<div class="row"><span class="lbl">Height</span><span class="val">${g.heightCm} cm</span></div>`:''}
+          ${g.headCm?`<div class="row"><span class="lbl">Head Circumference</span><span class="val">${g.headCm} cm</span></div>`:''}
+          <div style="font-size:11px;color:#8B938F;margin-top:4px">${growth.length} measurements recorded</div>
+        </div>`;
+      }
 
-    addStep('s4','⏳ Authenticating...','pending');
-    await auth.signInAnonymously();
-    addStep('s4','✓ Authenticated','ok');
+      // Medical History
+      if (history.length>0) {
+        html += `<div class="section"><div class="stitle">Medical History</div>`;
+        history.slice(0,5).forEach(h => {
+          html += `<div class="hitem">
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:13px;font-weight:600;color:#1C2320">${h.condition||h.title||'Record'}</span>
+              <span style="font-size:11px;color:#8B938F">${fmtDate(h.date)}</span>
+            </div>
+            ${h.doctor?`<div style="font-size:12px;color:#5A6360">Dr. ${h.doctor}</div>`:''}
+            ${h.treatment||h.notes?`<div style="font-size:12px;color:#5A6360">${h.treatment||h.notes}</div>`:''}
+          </div>`;
+        });
+        if (history.length>5) html += `<div style="font-size:11px;color:#8B938F;margin-top:6px">+${history.length-5} more records in app</div>`;
+        html += '</div>';
+      }
 
-    addStep('s5','⏳ Loading passport...','pending');
-    const tokenDoc = await db.collection('accessTokens').doc(token).get();
-    if(!tokenDoc.exists){ addStep('s5','✗ Token not found','fail'); return; }
+      html += `<div class="note">🔒 Verified by MyChild App · Valid until ${expiresAt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>`;
 
-    const tokenData = tokenDoc.data();
-    const expiresAt = parseDate(tokenData.expiresAt);
-    if(tokenData.isRevoked){ addStep('s5','✗ Access has been revoked','fail'); return; }
-    if(expiresAt && new Date() > expiresAt){ addStep('s5','✗ QR code expired. Please generate a new one.','fail'); return; }
+      contentEl.innerHTML = html;
 
-    if(!tokenData.passportData){
-      addStep('s5','✗ Passport data not found. Please regenerate QR from the app.','fail');
-      return;
+    } catch(e) {
+      addStep('serr', '✗ Error: ' + (e.message||e.toString()), 'fail');
     }
-
-    addStep('s5','✓ Passport loaded','ok');
-    document.getElementById('status').style.display='none';
-    renderPassport(tokenData);
-
-  }catch(e){
-    addStep('serr','✗ Error: '+(e.message || e.toString()),'fail');
   }
-}
 
-loadPassport();
+  loadPassport();
 </script>
 </body>
 </html>
