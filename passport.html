@@ -271,8 +271,8 @@ function renderPassport(tokenData){
 
   const vaccines = sections.vaccines || [];
   const history = sections.medicalHistory || [];
-  const medications = history.filter(h => String(firstNonEmpty(h,['type','category'])).toLowerCase() === 'medication');
-  const otherHistory = history.filter(h => String(firstNonEmpty(h,['type','category'])).toLowerCase() !== 'medication');
+  const medications = history.filter(h => String(h.type || '').toLowerCase() === 'medication');
+  const otherHistory = history.filter(h => String(h.type || '').toLowerCase() !== 'medication');
   const labs = sections.labReports || [];
   const growth = sections.growth || [];
   const docs = sections.documents || [];
@@ -345,17 +345,18 @@ function renderPassport(tokenData){
           const title = firstNonEmpty(m,['name','medicationName','title']) || 'Medication';
           const start = fmtDate(firstNonEmpty(m,['startDate','date','createdAt']));
           const end = fmtDate(firstNonEmpty(m,['endDate']));
-          const status = firstNonEmpty(m,['status']) || (m.ongoing ? 'Current' : '');
+          const status = firstNonEmpty(m,['status']) || (m.ongoing ? 'Current' : 'Completed');
           const details = [
             firstNonEmpty(m,['dosage']) ? esc(firstNonEmpty(m,['dosage'])) : '',
             firstNonEmpty(m,['frequency']) ? esc(firstNonEmpty(m,['frequency'])) : '',
-            status ? esc(status) : '',
-            start !== '—' ? `Start: ${start}` : '',
-            end !== '—' ? `End: ${end}` : '',
+            start !== '—' ? `Start ${start}` : '',
+            end !== '—' ? `End ${end}` : '',
             firstNonEmpty(m,['prescribedBy','doctor']) ? `Dr ${esc(firstNonEmpty(m,['prescribedBy','doctor']))}` : '',
             firstNonEmpty(m,['notes','description']) ? esc(firstNonEmpty(m,['notes','description'])) : ''
           ].filter(Boolean).join(' · ');
-          const pill = status.toLowerCase()==='completed' ? '<span class="pill blue">Completed</span>' : '<span class="pill green">Medication</span>';
+          const pill = String(status).toLowerCase()==='current'
+            ? '<span class="pill blue">Current</span>'
+            : '<span class="pill green">Completed</span>';
           return item(title, details, pill);
         }).join('') : `<div class="empty">No medications recorded.</div>`}
       `)}
@@ -363,15 +364,13 @@ function renderPassport(tokenData){
       ${section('Medical History','🩺',otherHistory.length,`
         ${otherHistory.length ? otherHistory.map(h => {
           const type = firstNonEmpty(h,['type','category']);
-          const title = firstNonEmpty(h,['condition','name','allergen','medicationName','treatment','title']) || type || 'Medical record';
-          const date = fmtDate(firstNonEmpty(h,['date','diagnosedDate','startDate','createdAt']));
+          const title = firstNonEmpty(h,['condition','allergen','treatment','title','name']) || type || 'Medical record';
+          const date = fmtDate(firstNonEmpty(h,['date','diagnosedDate','identifiedDate','createdAt']));
           const details = [
             type ? esc(type) : '',
             firstNonEmpty(h,['severity']) ? esc(firstNonEmpty(h,['severity'])) : '',
             firstNonEmpty(h,['reaction']) ? esc(firstNonEmpty(h,['reaction'])) : '',
-            firstNonEmpty(h,['dosage']) ? esc(firstNonEmpty(h,['dosage'])) : '',
-            firstNonEmpty(h,['frequency']) ? esc(firstNonEmpty(h,['frequency'])) : '',
-            firstNonEmpty(h,['doctor','prescribedBy']) ? `Dr ${esc(firstNonEmpty(h,['doctor','prescribedBy']))}` : '',
+            firstNonEmpty(h,['doctor']) ? `Dr ${esc(firstNonEmpty(h,['doctor']))}` : '',
             date !== '—' ? date : '',
             firstNonEmpty(h,['notes','description']) ? esc(firstNonEmpty(h,['notes','description'])) : ''
           ].filter(Boolean).join(' · ');
