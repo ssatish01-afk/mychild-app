@@ -271,6 +271,8 @@ function renderPassport(tokenData){
 
   const vaccines = sections.vaccines || [];
   const history = sections.medicalHistory || [];
+  const medications = history.filter(h => String(firstNonEmpty(h,['type','category'])).toLowerCase() === 'medication');
+  const otherHistory = history.filter(h => String(firstNonEmpty(h,['type','category'])).toLowerCase() !== 'medication');
   const labs = sections.labReports || [];
   const growth = sections.growth || [];
   const docs = sections.documents || [];
@@ -338,8 +340,28 @@ function renderPassport(tokenData){
         }).join('') : `<div class="empty">No vaccine records available.</div>`}
       `)}
 
-      ${section('Medical History','🩺',history.length,`
-        ${history.length ? history.map(h => {
+      ${section('Medications','💊',medications.length,`
+        ${medications.length ? medications.map(m => {
+          const title = firstNonEmpty(m,['name','medicationName','title']) || 'Medication';
+          const start = fmtDate(firstNonEmpty(m,['startDate','date','createdAt']));
+          const end = fmtDate(firstNonEmpty(m,['endDate']));
+          const status = firstNonEmpty(m,['status']) || (m.ongoing ? 'Current' : '');
+          const details = [
+            firstNonEmpty(m,['dosage']) ? esc(firstNonEmpty(m,['dosage'])) : '',
+            firstNonEmpty(m,['frequency']) ? esc(firstNonEmpty(m,['frequency'])) : '',
+            status ? esc(status) : '',
+            start !== '—' ? `Start: ${start}` : '',
+            end !== '—' ? `End: ${end}` : '',
+            firstNonEmpty(m,['prescribedBy','doctor']) ? `Dr ${esc(firstNonEmpty(m,['prescribedBy','doctor']))}` : '',
+            firstNonEmpty(m,['notes','description']) ? esc(firstNonEmpty(m,['notes','description'])) : ''
+          ].filter(Boolean).join(' · ');
+          const pill = status.toLowerCase()==='completed' ? '<span class="pill blue">Completed</span>' : '<span class="pill green">Medication</span>';
+          return item(title, details, pill);
+        }).join('') : `<div class="empty">No medications recorded.</div>`}
+      `)}
+
+      ${section('Medical History','🩺',otherHistory.length,`
+        ${otherHistory.length ? otherHistory.map(h => {
           const type = firstNonEmpty(h,['type','category']);
           const title = firstNonEmpty(h,['condition','name','allergen','medicationName','treatment','title']) || type || 'Medical record';
           const date = fmtDate(firstNonEmpty(h,['date','diagnosedDate','startDate','createdAt']));
