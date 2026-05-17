@@ -33,7 +33,7 @@
     background:var(--bg);
     color:var(--ink);
     min-height:100vh;
-    padding:14px;
+    padding:10px;
   }
   .page{max-width:760px;margin:0 auto}
   .shell{
@@ -46,10 +46,10 @@
   .top{
     background:linear-gradient(135deg,#4E6E5D,#395445);
     color:white;
-    padding:24px 22px 22px;
+    padding:20px 18px 18px;
   }
   .brand{font-size:13px;font-weight:800;letter-spacing:.7px;opacity:.78;text-transform:uppercase}
-  .child-name{font-size:30px;font-weight:900;margin-top:10px;line-height:1.05}
+  .child-name{font-size:27px;font-weight:900;margin-top:8px;line-height:1.05}
   .child-meta{font-size:13px;margin-top:8px;color:rgba(255,255,255,.82);font-weight:650}
   .top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
   .verified{
@@ -60,7 +60,7 @@
     border:1px solid rgba(255,255,255,.24);
     font-size:12px;font-weight:850;
   }
-  .content{padding:16px}
+  .content{padding:12px}
   .status-card{
     background:white;border:1px solid var(--border);
     border-radius:22px;padding:16px;margin-bottom:14px;
@@ -72,21 +72,21 @@
   .section{
     background:white;
     border:1px solid var(--border);
-    border-radius:24px;
-    padding:16px;
-    margin-bottom:14px;
+    border-radius:22px;
+    padding:12px;
+    margin-bottom:10px;
     box-shadow:0 7px 18px rgba(0,0,0,.035);
   }
   .section-head{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
-    margin-bottom:12px;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    margin-bottom:8px;
   }
   .section-title{
-    display:flex;align-items:center;gap:10px;
-    font-size:16px;font-weight:900;color:var(--ink);
+    display:flex;align-items:center;gap:8px;
+    font-size:15px;font-weight:900;color:var(--ink);
   }
   .icon{
-    width:36px;height:36px;border-radius:14px;
+    width:32px;height:32px;border-radius:12px;
     display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);
     font-size:18px;flex-shrink:0;
   }
@@ -98,18 +98,18 @@
     font-size:12px;
     font-weight:900;
   }
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
   .stat{
     background:#F8FBF8;
     border:1px solid var(--border);
-    border-radius:18px;
-    padding:12px;
+    border-radius:16px;
+    padding:9px 10px;
   }
-  .snum{font-size:22px;font-weight:950;color:var(--ink)}
-  .slbl{font-size:12px;color:var(--muted);font-weight:750;margin-top:2px}
+  .snum{font-size:19px;font-weight:950;color:var(--ink)}
+  .slbl{font-size:11px;color:var(--muted);font-weight:750;margin-top:1px}
   .row{
     display:flex;justify-content:space-between;gap:12px;
-    padding:10px 0;border-bottom:1px solid #EEF2ED;
+    padding:7px 0;border-bottom:1px solid #EEF2ED;
   }
   .row:last-child{border-bottom:0}
   .lbl{font-size:13px;color:var(--muted);font-weight:700}
@@ -118,17 +118,20 @@
   .seg-done{background:#2EAD73}.seg-due{background:#F4BE45}.seg-overdue{background:var(--danger)}.seg-rest{background:#E8E6DE}
   .item{
     border:1px solid var(--border);
-    border-radius:18px;
-    padding:12px;
-    margin-top:9px;
+    border-radius:16px;
+    padding:9px 10px;
+    margin-top:6px;
     background:#FBFDFB;
   }
-  .item-title{font-size:14px;font-weight:900;color:var(--ink);line-height:1.25}
-  .item-sub{font-size:12px;color:var(--muted);font-weight:650;margin-top:4px;line-height:1.35}
+  .item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .item-title{font-size:13.5px;font-weight:900;color:var(--ink);line-height:1.2;min-width:0}
+  .item-sub{font-size:11.5px;color:var(--muted);font-weight:650;margin-top:3px;line-height:1.28}
+  .meta-line{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+  .meta-dot::before{content:'•';margin-right:8px;color:var(--subtle)}
   .pill{
     display:inline-flex;align-items:center;
-    padding:4px 8px;border-radius:999px;font-size:11px;font-weight:900;
-    margin-top:8px;margin-right:6px;
+    padding:3px 7px;border-radius:999px;font-size:10.5px;font-weight:900;
+    margin-top:0;margin-right:0;
   }
   .pill.green{background:var(--accent-bg);color:var(--accent)}
   .pill.orange{background:var(--orange-bg);color:var(--orange)}
@@ -249,10 +252,16 @@ function section(title, icon, count, body){
 
 function item(title, sub, pills=''){
   return `<div class="item">
-    <div class="item-title">${esc(title)}</div>
+    <div class="item-top">
+      <div class="item-title">${esc(title)}</div>
+      ${pills ? `<div class="item-pill-wrap">${pills}</div>` : ''}
+    </div>
     ${sub ? `<div class="item-sub">${sub}</div>` : ''}
-    ${pills}
   </div>`;
+}
+
+function meta(parts){
+  return `<div class="meta-line">${parts.filter(Boolean).map((p,i)=>`<span class="${i>0?'meta-dot':''}">${p}</span>`).join('')}</div>`;
 }
 
 function renderPassport(tokenData){
@@ -265,6 +274,7 @@ function renderPassport(tokenData){
   const labs = sections.labReports || [];
   const growth = sections.growth || [];
   const docs = sections.documents || [];
+  const doctorVisits = sections.doctorVisits || [];
 
   const childName = firstNonEmpty(child, ['fullName','name']) || 'Child';
   const uniqueId = firstNonEmpty(child, ['uniqueId','id']);
@@ -334,15 +344,15 @@ function renderPassport(tokenData){
           const title = firstNonEmpty(h,['condition','name','allergen','medicationName','treatment','title']) || type || 'Medical record';
           const date = fmtDate(firstNonEmpty(h,['date','diagnosedDate','startDate','createdAt']));
           const details = [
-            type ? `Type: ${esc(type)}` : '',
-            firstNonEmpty(h,['severity']) ? `Severity: ${esc(firstNonEmpty(h,['severity']))}` : '',
-            firstNonEmpty(h,['reaction']) ? `Reaction: ${esc(firstNonEmpty(h,['reaction']))}` : '',
-            firstNonEmpty(h,['dosage']) ? `Dosage: ${esc(firstNonEmpty(h,['dosage']))}` : '',
-            firstNonEmpty(h,['frequency']) ? `Frequency: ${esc(firstNonEmpty(h,['frequency']))}` : '',
-            firstNonEmpty(h,['doctor','prescribedBy']) ? `Doctor: ${esc(firstNonEmpty(h,['doctor','prescribedBy']))}` : '',
-            date !== '—' ? `Date: ${date}` : '',
+            type ? esc(type) : '',
+            firstNonEmpty(h,['severity']) ? esc(firstNonEmpty(h,['severity'])) : '',
+            firstNonEmpty(h,['reaction']) ? esc(firstNonEmpty(h,['reaction'])) : '',
+            firstNonEmpty(h,['dosage']) ? esc(firstNonEmpty(h,['dosage'])) : '',
+            firstNonEmpty(h,['frequency']) ? esc(firstNonEmpty(h,['frequency'])) : '',
+            firstNonEmpty(h,['doctor','prescribedBy']) ? `Dr ${esc(firstNonEmpty(h,['doctor','prescribedBy']))}` : '',
+            date !== '—' ? date : '',
             firstNonEmpty(h,['notes','description']) ? esc(firstNonEmpty(h,['notes','description'])) : ''
-          ].filter(Boolean).join('<br>');
+          ].filter(Boolean).join(' · ');
           const sev = String(firstNonEmpty(h,['severity'])).toLowerCase();
           const pill = sev==='severe' ? '<span class="pill red">Severe</span>' : type ? `<span class="pill green">${esc(type)}</span>` : '';
           return item(title, details, pill);
@@ -355,11 +365,11 @@ function renderPassport(tokenData){
           const date = fmtDate(firstNonEmpty(r,['reportDate','date','createdAt','uploadedAt']));
           const status = firstNonEmpty(r,['status','resultStatus','aiStatus']);
           const details = [
-            date !== '—' ? `Date: ${date}` : '',
-            status ? `Status: ${esc(status)}` : '',
+            date !== '—' ? date : '',
+            status ? esc(status) : '',
             firstNonEmpty(r,['summary','aiSummary','analysis','notes']) ? esc(firstNonEmpty(r,['summary','aiSummary','analysis','notes'])) : '',
-            firstNonEmpty(r,['fileName']) ? `File: ${esc(firstNonEmpty(r,['fileName']))}` : ''
-          ].filter(Boolean).join('<br>');
+            firstNonEmpty(r,['fileName']) ? esc(firstNonEmpty(r,['fileName'])) : ''
+          ].filter(Boolean).join(' · ');
           const pill = status ? `<span class="pill blue">${esc(status)}</span>` : '<span class="pill green">Report</span>';
           return item(title, details, pill);
         }).join('') : `<div class="empty">No lab reports available.</div>`}
@@ -369,14 +379,29 @@ function renderPassport(tokenData){
         ${growth.length ? growth.slice(0,8).map(g => {
           const date = fmtDate(firstNonEmpty(g,['measurementDate','date','createdAt']));
           const parts = [
-            g.weightKg !== undefined ? `Weight: ${esc(g.weightKg)} kg` : '',
-            g.heightCm !== undefined ? `Height: ${esc(g.heightCm)} cm` : '',
-            g.bmi !== undefined ? `BMI: ${esc(g.bmi)}` : '',
-            firstNonEmpty(g,['bmiStatus','status']) ? `Status: ${esc(firstNonEmpty(g,['bmiStatus','status']))}` : ''
-          ].filter(Boolean).join('<br>');
+            g.weightKg !== undefined ? `${esc(g.weightKg)} kg` : '',
+            g.heightCm !== undefined ? `${esc(g.heightCm)} cm` : '',
+            g.bmi !== undefined ? `BMI ${esc(g.bmi)}` : '',
+            firstNonEmpty(g,['bmiStatus','status']) ? esc(firstNonEmpty(g,['bmiStatus','status'])) : ''
+          ].filter(Boolean).join(' · ');
           return item(date, parts, '<span class="pill green">Measurement</span>');
         }).join('') : `<div class="empty">No growth records available.</div>`}
       `)}
+
+
+      ${doctorVisits.length ? section('Doctor Visits','👨‍⚕️',doctorVisits.length,`
+        ${doctorVisits.slice(0,8).map(v => {
+          const title = firstNonEmpty(v,['doctorName']) ? `Dr. ${esc(firstNonEmpty(v,['doctorName']))}` : 'Doctor visit';
+          const date = fmtDate(firstNonEmpty(v,['visitDate','date','createdAt']));
+          const details = [
+            date !== '—' ? date : '',
+            firstNonEmpty(v,['clinic']) ? esc(firstNonEmpty(v,['clinic'])) : '',
+            firstNonEmpty(v,['reason']) ? esc(firstNonEmpty(v,['reason'])) : '',
+            firstNonEmpty(v,['diagnosis']) ? `Diagnosis: ${esc(firstNonEmpty(v,['diagnosis']))}` : ''
+          ].filter(Boolean).join(' · ');
+          return item(title, details, '<span class="pill green">Visit</span>');
+        }).join('')}
+      `) : ''}
 
       ${docs.length ? section('Uploaded Documents','📁',docs.length,`
         ${docs.map(d => {
