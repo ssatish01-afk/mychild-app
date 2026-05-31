@@ -170,6 +170,8 @@
   .lab-summary{font-size:11.5px;color:var(--ink);margin-top:6px;line-height:1.5;white-space:pre-wrap}
   .lab-no-summary{font-size:11px;color:var(--subtle);margin-top:4px;font-style:italic}
   .lab-older{font-size:10px;color:var(--muted);text-align:center;padding:6px 0}
+  .ai-disclaimer{background:#FFF8E1;border:1px solid #FFE082;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:11px;color:#795500;line-height:1.5}
+  .ai-disclaimer strong{font-weight:900}
   @media print{
     body{padding:0;background:white}
     .shell{box-shadow:none;border:0;border-radius:0}
@@ -407,13 +409,8 @@ function renderPassport(tokenData){
             let html = shown.map(r => {
               const name = firstNonEmpty(r,['reportName','title','testName','name']) || 'Lab report';
               const date = fmtDate(firstNonEmpty(r,['reportDate','date','createdAt','uploadedAt']));
-              // aiAnalysis is the correct Firestore field — others are fallbacks
-              const summary = [
-                r.aiAnalysis, r.aiSummary, r.summary, r.aiFinding,
-                r.findings, r.keyFindings, r.interpretation,
-                r.analysisResult, r.analysis, r.notes
-              ].map(v=>(v||'').toString().trim())
-               .find(s => s.length > 0 && s !== FAILED) || '';
+              const summary = [r.aiAnalysis,r.aiSummary,r.summary,r.aiFinding,r.findings,r.keyFindings,r.interpretation,r.analysisResult,r.analysis,r.notes]
+                .map(v=>(v||'').toString().trim()).find(s=>s.length>0 && s!==FAILED) || '';
               return `<div class="lab-card">
                 <div class="lab-card-head">
                   <div class="lab-card-name">🧪 ${esc(name)}</div>
@@ -421,51 +418,47 @@ function renderPassport(tokenData){
                 </div>
                 ${summary
                   ? `<div class="lab-summary">${esc(summary.length>500?summary.substring(0,500)+'…':summary)}</div>`
-                  : `<div class="lab-no-summary">No AI analysis available for this report.</div>`
-                }
+                  : `<div class="lab-no-summary">No AI analysis available for this report.</div>`}
               </div>`;
             }).join('');
-            if(labs.length > 2){
-              html += `<div class="lab-older">+ ${labs.length-2} older report${labs.length-2===1?'':'s'} not shown</div>`;
-            }
+            if(labs.length>2) html+=`<div class="lab-older">+ ${labs.length-2} older report${labs.length-2===1?'':'s'} not shown</div>`;
             return html;
           })()
       )}
 
-      ${section('Growth','📈',growth.length, growth.length === 0
+      ${section('Growth','📈',growth.length, growth.length===0
         ? '<div class="empty">No growth records available.</div>'
-        : (() => {
-            const latest = growth[0];
-            const prev   = growth.length > 1 ? growth[1] : null;
-            const latDate = fmtDate(firstNonEmpty(latest,['measurementDate','date','createdAt']));
-            const h  = latest.heightCm != null ? parseFloat(latest.heightCm) : null;
-            const w  = latest.weightKg != null ? parseFloat(latest.weightKg) : null;
-            const bmi = latest.bmi != null ? parseFloat(latest.bmi).toFixed(1) : null;
-            const bmiSt = firstNonEmpty(latest,['bmiStatus','status']);
-            function fmtPct(v){ const n=parseFloat(v); return isNaN(n)?null:Math.round(n); }
-            const hPct = fmtPct(latest.heightPercentile ?? latest.heightP);
-            const wPct = fmtPct(latest.weightPercentile ?? latest.weightP);
-            let hDiff='', wDiff='', hDiffCls='', wDiffCls='';
+        : (()=>{
+            const latest=growth[0], prev=growth.length>1?growth[1]:null;
+            const latDate=fmtDate(firstNonEmpty(latest,['measurementDate','date','createdAt']));
+            const h=latest.heightCm!=null?parseFloat(latest.heightCm):null;
+            const w=latest.weightKg!=null?parseFloat(latest.weightKg):null;
+            const bmi=latest.bmi!=null?parseFloat(latest.bmi).toFixed(1):null;
+            const bmiSt=firstNonEmpty(latest,['bmiStatus','status']);
+            function fmtPct(v){const n=parseFloat(v);return isNaN(n)?null:Math.round(n);}
+            const hPct=fmtPct(latest.heightPercentile??latest.heightP);
+            const wPct=fmtPct(latest.weightPercentile??latest.weightP);
+            let hDiff='',wDiff='',hCls='',wCls='';
             if(prev){
-              const ph = prev.heightCm != null ? parseFloat(prev.heightCm) : null;
-              const pw = prev.weightKg != null ? parseFloat(prev.weightKg) : null;
-              if(h!=null && ph!=null){ const d=(h-ph); hDiff=(d>=0?'+':'')+d.toFixed(1)+' cm'; hDiffCls=d>=0?'pos':'neg'; }
-              if(w!=null && pw!=null){ const d=(w-pw); wDiff=(d>=0?'+':'')+d.toFixed(1)+' kg'; wDiffCls=d>=0?'pos':'neg'; }
+              const ph=prev.heightCm!=null?parseFloat(prev.heightCm):null;
+              const pw=prev.weightKg!=null?parseFloat(prev.weightKg):null;
+              if(h!=null&&ph!=null){const d=h-ph;hDiff=(d>=0?'+':'')+d.toFixed(1)+' cm';hCls=d>=0?'pos':'neg';}
+              if(w!=null&&pw!=null){const d=w-pw;wDiff=(d>=0?'+':'')+d.toFixed(1)+' kg';wCls=d>=0?'pos':'neg';}
             }
-            let html = `<div class="growth-card">
-              <div class="growth-latest-label">Latest &nbsp;&middot;&nbsp; ${latDate}</div>
+            let html=`<div class="growth-card">
+              <div class="growth-latest-label">Latest &middot; ${latDate}</div>
               <div class="growth-cols">
                 <div class="growth-col">
                   <div class="growth-metric-label">Height</div>
                   <div class="growth-metric-val">${h!=null?h+' cm':'—'}</div>
                   ${hPct!=null?`<div class="growth-pct">P${hPct} (WHO)</div>`:''}
-                  ${hDiff?`<div class="growth-diff ${hDiffCls}">${hDiff}</div>`:''}
+                  ${hDiff?`<div class="growth-diff ${hCls}">${hDiff}</div>`:''}
                 </div>
                 <div class="growth-col">
                   <div class="growth-metric-label">Weight</div>
                   <div class="growth-metric-val">${w!=null?w+' kg':'—'}</div>
                   ${wPct!=null?`<div class="growth-pct">P${wPct} (WHO)</div>`:''}
-                  ${wDiff?`<div class="growth-diff ${wDiffCls}">${wDiff}</div>`:''}
+                  ${wDiff?`<div class="growth-diff ${wCls}">${wDiff}</div>`:''}
                 </div>
                 ${bmi!=null?`<div class="growth-col">
                   <div class="growth-metric-label">BMI</div>
@@ -474,17 +467,14 @@ function renderPassport(tokenData){
                 </div>`:''}
               </div>`;
             if(prev){
-              const prevDate = fmtDate(firstNonEmpty(prev,['measurementDate','date','createdAt']));
-              const ph = prev.heightCm!=null?parseFloat(prev.heightCm):null;
-              const pw = prev.weightKg!=null?parseFloat(prev.weightKg):null;
-              html += `<hr class="growth-divider">
-                <div class="growth-prev-label">Previous &nbsp;&middot;&nbsp; ${prevDate}</div>
-                <div class="growth-prev-row">${[ph!=null?ph+' cm':'',pw!=null?pw+' kg':''].filter(Boolean).join(' &nbsp;&middot;&nbsp; ')}</div>`;
+              const pd=fmtDate(firstNonEmpty(prev,['measurementDate','date','createdAt']));
+              const ph=prev.heightCm!=null?parseFloat(prev.heightCm):null;
+              const pw2=prev.weightKg!=null?parseFloat(prev.weightKg):null;
+              html+=`<hr class="growth-divider"><div class="growth-prev-label">Previous &middot; ${pd}</div>
+                <div class="growth-prev-row">${[ph!=null?ph+' cm':'',pw2!=null?pw2+' kg':''].filter(Boolean).join(' &middot; ')}</div>`;
             }
-            html += '</div>';
-            if(growth.length > 2){
-              html += `<div class="lab-older">+ ${growth.length-2} older measurement${growth.length-2===1?'':'s'}</div>`;
-            }
+            html+='</div>';
+            if(growth.length>2) html+=`<div class="lab-older">+ ${growth.length-2} older measurement${growth.length-2===1?'':'s'}</div>`;
             return html;
           })()
       )}
@@ -511,6 +501,12 @@ function renderPassport(tokenData){
           return item(title, date !== '—' ? `Uploaded: ${date}` : '', '<span class="pill blue">Document</span>');
         }).join('')}
       `) : ''}
+
+      <div class="ai-disclaimer">
+        <strong>⚠️ AI Disclaimer:</strong> Lab report summaries are AI-generated and may not be fully accurate.
+        This health passport is for informational purposes only and is not a substitute for professional medical advice.
+        Always consult a qualified doctor for clinical decisions.
+      </div>
 
       <div class="section">
         <div class="section-title"><span class="icon">🔒</span><span>Access Information</span></div>
