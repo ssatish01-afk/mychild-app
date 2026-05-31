@@ -151,6 +151,27 @@
     border-radius:18px;padding:14px;font-size:14px;font-weight:900;
     margin-bottom:14px;
   }
+  /* Growth card */
+  .growth-card{background:var(--accent-bg);border:1px solid var(--border);border-radius:16px;padding:12px;margin-top:6px}
+  .growth-latest-label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .growth-cols{display:flex;gap:8px}
+  .growth-col{flex:1;min-width:0}
+  .growth-metric-label{font-size:9px;color:var(--subtle);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .growth-metric-val{font-size:17px;font-weight:900;color:var(--ink);line-height:1.1;margin-top:2px}
+  .growth-pct{font-size:10px;font-weight:800;color:var(--accent);margin-top:2px}
+  .growth-diff{font-size:10px;font-weight:800;margin-top:1px}
+  .growth-diff.pos{color:var(--accent)}.growth-diff.neg{color:var(--danger)}
+  .growth-divider{border:0;border-top:1px solid var(--border);margin:10px 0}
+  .growth-prev-label{font-size:10px;font-weight:800;color:var(--muted)}
+  .growth-prev-row{font-size:11px;color:var(--ink);margin-top:4px}
+  /* Lab summary card */
+  .lab-card{background:#F5F0FA;border:1px solid #DDD0F0;border-radius:14px;padding:11px;margin-top:6px}
+  .lab-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .lab-card-name{font-size:13px;font-weight:900;color:#5B2D9E;min-width:0;flex:1}
+  .lab-card-date{font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .lab-summary{font-size:11.5px;color:var(--ink);margin-top:6px;line-height:1.5}
+  .lab-no-summary{font-size:11px;color:var(--subtle);margin-top:4px;font-style:italic}
+  .lab-older{font-size:10px;color:var(--muted);text-align:center;padding:6px 0}
   @media print{
     body{padding:0;background:white}
     .shell{box-shadow:none;border:0;border-radius:0}
@@ -380,34 +401,107 @@ function renderPassport(tokenData){
         }).join('') : `<div class="empty">No medical history records available.</div>`}
       `)}
 
-      ${section('Lab Reports','🧪',labs.length,`
-        ${labs.length ? labs.map(r => {
-          const title = firstNonEmpty(r,['reportName','title','testName','name']) || 'Lab report';
-          const date = fmtDate(firstNonEmpty(r,['reportDate','date','createdAt','uploadedAt']));
-          const status = firstNonEmpty(r,['status','resultStatus','aiStatus']);
-          const details = [
-            date !== '—' ? date : '',
-            status ? esc(status) : '',
-            firstNonEmpty(r,['summary','aiSummary','analysis','notes']) ? esc(firstNonEmpty(r,['summary','aiSummary','analysis','notes'])) : '',
-            firstNonEmpty(r,['fileName']) ? esc(firstNonEmpty(r,['fileName'])) : ''
-          ].filter(Boolean).join(' · ');
-          const pill = status ? `<span class="pill blue">${esc(status)}</span>` : '<span class="pill green">Report</span>';
-          return item(title, details, pill);
-        }).join('') : `<div class="empty">No lab reports available.</div>`}
-      `)}
+      ${section('Lab Reports','🧪',labs.length, labs.length === 0
+        ? '<div class="empty">No lab reports available.</div>'
+        : (() => {
+            // Show last 2 with full AI summary
+            const shown = labs.slice(0,2);
+            let html = shown.map(r => {
+              const name = firstNonEmpty(r,['reportName','title','testName','name']) || 'Lab report';
+              const date = fmtDate(firstNonEmpty(r,['reportDate','date','createdAt','uploadedAt']));
+              // Try all possible field names for AI summary
+              const summary = [
+                r.aiSummary, r.summary, r.aiFinding, r.findings,
+                r.keyFindings, r.interpretation, r.analysisResult,
+                r.reportSummary, r.analysis, r.notes
+              ].map(v=>(v||'').toString().trim()).find(s=>s.length>0) || '';
+              return `<div class="lab-card">
+                <div class="lab-card-head">
+                  <div class="lab-card-name">🧪 ${esc(name)}</div>
+                  <div class="lab-card-date">${date}</div>
+                </div>
+                ${summary
+                  ? `<div class="lab-summary">${esc(summary.length>400?summary.substring(0,400)+'…':summary)}</div>`
+                  : `<div class="lab-no-summary">No AI summary available for this report.</div>`
+                }
+              </div>`;
+            }).join('');
+            if(labs.length > 2){
+              html += `<div class="lab-older">+ ${labs.length-2} older report${labs.length-2===1?'':'s'} not shown</div>`;
+            }
+            return html;
+          })()
+      )}
 
-      ${section('Growth','📈',growth.length,`
-        ${growth.length ? growth.slice(0,8).map(g => {
-          const date = fmtDate(firstNonEmpty(g,['measurementDate','date','createdAt']));
-          const parts = [
-            g.weightKg !== undefined ? `${esc(g.weightKg)} kg` : '',
-            g.heightCm !== undefined ? `${esc(g.heightCm)} cm` : '',
-            g.bmi !== undefined ? `BMI ${esc(g.bmi)}` : '',
-            firstNonEmpty(g,['bmiStatus','status']) ? esc(firstNonEmpty(g,['bmiStatus','status'])) : ''
-          ].filter(Boolean).join(' · ');
-          return item(date, parts, '<span class="pill green">Measurement</span>');
-        }).join('') : `<div class="empty">No growth records available.</div>`}
-      `)}
+      ${section('Growth','📈',growth.length, growth.length === 0
+        ? '<div class="empty">No growth records available.</div>'
+        : (() => {
+            const latest = growth[0];
+            const prev   = growth.length > 1 ? growth[1] : null;
+            const latDate = fmtDate(firstNonEmpty(latest,['measurementDate','date','createdAt']));
+            const h  = latest.heightCm != null ? parseFloat(latest.heightCm) : null;
+            const w  = latest.weightKg != null ? parseFloat(latest.weightKg) : null;
+            const bmi = latest.bmi != null ? parseFloat(latest.bmi).toFixed(1) : null;
+            const bmiSt = firstNonEmpty(latest,['bmiStatus','status']);
+
+            // Percentile — round float to int
+            function fmtPct(v){ const n=parseFloat(v); return isNaN(n)?null:Math.round(n); }
+            const hPct = fmtPct(latest.heightPercentile ?? latest.heightP);
+            const wPct = fmtPct(latest.weightPercentile ?? latest.weightP);
+
+            // Trend vs previous
+            let hDiff='', wDiff='', hDiffCls='', wDiffCls='';
+            if(prev){
+              const ph = prev.heightCm != null ? parseFloat(prev.heightCm) : null;
+              const pw = prev.weightKg != null ? parseFloat(prev.weightKg) : null;
+              if(h!=null && ph!=null){
+                const d=(h-ph); hDiff=(d>=0?'+':'')+d.toFixed(1)+' cm'; hDiffCls=d>=0?'pos':'neg';
+              }
+              if(w!=null && pw!=null){
+                const d=(w-pw); wDiff=(d>=0?'+':'')+d.toFixed(1)+' kg'; wDiffCls=d>=0?'pos':'neg';
+              }
+            }
+
+            let html = `<div class="growth-card">
+              <div class="growth-latest-label">Latest &nbsp;·&nbsp; ${latDate}</div>
+              <div class="growth-cols">
+                <div class="growth-col">
+                  <div class="growth-metric-label">Height</div>
+                  <div class="growth-metric-val">${h!=null?h+' cm':'—'}</div>
+                  ${hPct!=null?`<div class="growth-pct">P${hPct} (WHO)</div>`:''}
+                  ${hDiff?`<div class="growth-diff ${hDiffCls}">${hDiff}</div>`:''}
+                </div>
+                <div class="growth-col">
+                  <div class="growth-metric-label">Weight</div>
+                  <div class="growth-metric-val">${w!=null?w+' kg':'—'}</div>
+                  ${wPct!=null?`<div class="growth-pct">P${wPct} (WHO)</div>`:''}
+                  ${wDiff?`<div class="growth-diff ${wDiffCls}">${wDiff}</div>`:''}
+                </div>
+                ${bmi!=null?`<div class="growth-col">
+                  <div class="growth-metric-label">BMI</div>
+                  <div class="growth-metric-val">${bmi}</div>
+                  ${bmiSt?`<div class="growth-pct" style="color:var(--muted)">${esc(bmiSt)}</div>`:''}
+                </div>`:''}
+              </div>`;
+
+            if(prev){
+              const prevDate = fmtDate(firstNonEmpty(prev,['measurementDate','date','createdAt']));
+              const ph = prev.heightCm!=null?parseFloat(prev.heightCm):null;
+              const pw = prev.weightKg!=null?parseFloat(prev.weightKg):null;
+              html += `<hr class="growth-divider">
+                <div class="growth-prev-label">Previous &nbsp;·&nbsp; ${prevDate}</div>
+                <div class="growth-prev-row">${[
+                  ph!=null?ph+' cm height':'',
+                  pw!=null?pw+' kg weight':''
+                ].filter(Boolean).join(' &nbsp;·&nbsp; ')}</div>`;
+            }
+            html += '</div>';
+            if(growth.length > 2){
+              html += `<div class="lab-older">+ ${growth.length-2} older measurement${growth.length-2===1?'':'s'}</div>`;
+            }
+            return html;
+          })()
+      )}
 
 
       ${doctorVisits.length ? section('Doctor Visits','👨‍⚕️',doctorVisits.length,`
