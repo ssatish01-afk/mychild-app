@@ -151,7 +151,6 @@
     border-radius:18px;padding:14px;font-size:14px;font-weight:900;
     margin-bottom:14px;
   }
-  /* Growth card */
   .growth-card{background:var(--accent-bg);border:1px solid var(--border);border-radius:16px;padding:12px;margin-top:6px}
   .growth-latest-label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
   .growth-cols{display:flex;gap:8px}
@@ -164,12 +163,11 @@
   .growth-divider{border:0;border-top:1px solid var(--border);margin:10px 0}
   .growth-prev-label{font-size:10px;font-weight:800;color:var(--muted)}
   .growth-prev-row{font-size:11px;color:var(--ink);margin-top:4px}
-  /* Lab summary card */
   .lab-card{background:#F5F0FA;border:1px solid #DDD0F0;border-radius:14px;padding:11px;margin-top:6px}
   .lab-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
   .lab-card-name{font-size:13px;font-weight:900;color:#5B2D9E;min-width:0;flex:1}
   .lab-card-date{font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap}
-  .lab-summary{font-size:11.5px;color:var(--ink);margin-top:6px;line-height:1.5}
+  .lab-summary{font-size:11.5px;color:var(--ink);margin-top:6px;line-height:1.5;white-space:pre-wrap}
   .lab-no-summary{font-size:11px;color:var(--subtle);margin-top:4px;font-style:italic}
   .lab-older{font-size:10px;color:var(--muted);text-align:center;padding:6px 0}
   @media print{
@@ -404,25 +402,26 @@ function renderPassport(tokenData){
       ${section('Lab Reports','🧪',labs.length, labs.length === 0
         ? '<div class="empty">No lab reports available.</div>'
         : (() => {
-            // Show last 2 with full AI summary
+            const FAILED = 'Could not analyse the report automatically.';
             const shown = labs.slice(0,2);
             let html = shown.map(r => {
               const name = firstNonEmpty(r,['reportName','title','testName','name']) || 'Lab report';
               const date = fmtDate(firstNonEmpty(r,['reportDate','date','createdAt','uploadedAt']));
-              // Try all possible field names for AI summary
+              // aiAnalysis is the correct Firestore field — others are fallbacks
               const summary = [
-                r.aiSummary, r.summary, r.aiFinding, r.findings,
-                r.keyFindings, r.interpretation, r.analysisResult,
-                r.reportSummary, r.analysis, r.notes
-              ].map(v=>(v||'').toString().trim()).find(s=>s.length>0) || '';
+                r.aiAnalysis, r.aiSummary, r.summary, r.aiFinding,
+                r.findings, r.keyFindings, r.interpretation,
+                r.analysisResult, r.analysis, r.notes
+              ].map(v=>(v||'').toString().trim())
+               .find(s => s.length > 0 && s !== FAILED) || '';
               return `<div class="lab-card">
                 <div class="lab-card-head">
                   <div class="lab-card-name">🧪 ${esc(name)}</div>
                   <div class="lab-card-date">${date}</div>
                 </div>
                 ${summary
-                  ? `<div class="lab-summary">${esc(summary.length>400?summary.substring(0,400)+'…':summary)}</div>`
-                  : `<div class="lab-no-summary">No AI summary available for this report.</div>`
+                  ? `<div class="lab-summary">${esc(summary.length>500?summary.substring(0,500)+'…':summary)}</div>`
+                  : `<div class="lab-no-summary">No AI analysis available for this report.</div>`
                 }
               </div>`;
             }).join('');
@@ -443,27 +442,18 @@ function renderPassport(tokenData){
             const w  = latest.weightKg != null ? parseFloat(latest.weightKg) : null;
             const bmi = latest.bmi != null ? parseFloat(latest.bmi).toFixed(1) : null;
             const bmiSt = firstNonEmpty(latest,['bmiStatus','status']);
-
-            // Percentile — round float to int
             function fmtPct(v){ const n=parseFloat(v); return isNaN(n)?null:Math.round(n); }
             const hPct = fmtPct(latest.heightPercentile ?? latest.heightP);
             const wPct = fmtPct(latest.weightPercentile ?? latest.weightP);
-
-            // Trend vs previous
             let hDiff='', wDiff='', hDiffCls='', wDiffCls='';
             if(prev){
               const ph = prev.heightCm != null ? parseFloat(prev.heightCm) : null;
               const pw = prev.weightKg != null ? parseFloat(prev.weightKg) : null;
-              if(h!=null && ph!=null){
-                const d=(h-ph); hDiff=(d>=0?'+':'')+d.toFixed(1)+' cm'; hDiffCls=d>=0?'pos':'neg';
-              }
-              if(w!=null && pw!=null){
-                const d=(w-pw); wDiff=(d>=0?'+':'')+d.toFixed(1)+' kg'; wDiffCls=d>=0?'pos':'neg';
-              }
+              if(h!=null && ph!=null){ const d=(h-ph); hDiff=(d>=0?'+':'')+d.toFixed(1)+' cm'; hDiffCls=d>=0?'pos':'neg'; }
+              if(w!=null && pw!=null){ const d=(w-pw); wDiff=(d>=0?'+':'')+d.toFixed(1)+' kg'; wDiffCls=d>=0?'pos':'neg'; }
             }
-
             let html = `<div class="growth-card">
-              <div class="growth-latest-label">Latest &nbsp;·&nbsp; ${latDate}</div>
+              <div class="growth-latest-label">Latest &nbsp;&middot;&nbsp; ${latDate}</div>
               <div class="growth-cols">
                 <div class="growth-col">
                   <div class="growth-metric-label">Height</div>
@@ -483,17 +473,13 @@ function renderPassport(tokenData){
                   ${bmiSt?`<div class="growth-pct" style="color:var(--muted)">${esc(bmiSt)}</div>`:''}
                 </div>`:''}
               </div>`;
-
             if(prev){
               const prevDate = fmtDate(firstNonEmpty(prev,['measurementDate','date','createdAt']));
               const ph = prev.heightCm!=null?parseFloat(prev.heightCm):null;
               const pw = prev.weightKg!=null?parseFloat(prev.weightKg):null;
               html += `<hr class="growth-divider">
-                <div class="growth-prev-label">Previous &nbsp;·&nbsp; ${prevDate}</div>
-                <div class="growth-prev-row">${[
-                  ph!=null?ph+' cm height':'',
-                  pw!=null?pw+' kg weight':''
-                ].filter(Boolean).join(' &nbsp;·&nbsp; ')}</div>`;
+                <div class="growth-prev-label">Previous &nbsp;&middot;&nbsp; ${prevDate}</div>
+                <div class="growth-prev-row">${[ph!=null?ph+' cm':'',pw!=null?pw+' kg':''].filter(Boolean).join(' &nbsp;&middot;&nbsp; ')}</div>`;
             }
             html += '</div>';
             if(growth.length > 2){
