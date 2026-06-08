@@ -307,10 +307,23 @@ function renderPassport(tokenData){
   const dob = firstNonEmpty(child, ['dateOfBirth','dob']);
   const age = firstNonEmpty(child, ['age']) || ageFromDob(dob);
 
-  const done = vaccines.filter(v => (v.status||'').toLowerCase()==='done').length;
-  const due = vaccines.filter(v => ['due','upcoming'].includes((v.status||'').toLowerCase())).length;
-  const overdue = vaccines.filter(v => (v.status||'').toLowerCase()==='overdue').length;
-  const skipped = vaccines.filter(v => (v.status||'').toLowerCase()==='skipped').length;
+  // Recalculate status from dueDate so counts match the vaccine screen
+  function calcVaxStatus(v) {
+    const s = (v.status||'').toLowerCase();
+    if (s === 'done' || s === 'skipped') return s;
+    const dueSrc = v.dueDate || v.scheduledDate;
+    if (!dueSrc) return s;
+    const dueMs = dueSrc.seconds ? dueSrc.seconds*1000 : new Date(dueSrc).getTime();
+    if (isNaN(dueMs)) return s;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dueDay = new Date(dueMs); dueDay.setHours(0,0,0,0);
+    if (dueDay > today) return 'upcoming';
+    return Math.floor((today - dueDay) / 86400000) <= 30 ? 'due' : 'overdue';
+  }
+  const done    = vaccines.filter(v => calcVaxStatus(v) === 'done').length;
+  const due     = vaccines.filter(v => ['due','upcoming'].includes(calcVaxStatus(v))).length;
+  const overdue = vaccines.filter(v => calcVaxStatus(v) === 'overdue').length;
+  const skipped = vaccines.filter(v => calcVaxStatus(v) === 'skipped').length;
   const total = vaccines.length;
   const pct = total ? Math.round(done/total*100) : 0;
 
@@ -356,9 +369,10 @@ function renderPassport(tokenData){
         </div>
         ${vaccines.length ? vaccines.map(v => {
           const name = firstNonEmpty(v,['name','shortName','vaccineName']) || 'Vaccine';
-          const date = v.status==='done' ? fmtDate(firstNonEmpty(v,['completedDate','givenDate'])) : fmtDate(firstNonEmpty(v,['dueDate','scheduledDate']));
+          const _vs = calcVaxStatus(v);
+          const date = _vs==='done' ? fmtDate(firstNonEmpty(v,['completedDate','givenDate'])) : fmtDate(firstNonEmpty(v,['dueDate','scheduledDate']));
           const sub = `${date !== '—' ? date : ''}${v.scheduledAgeMonths !== undefined ? ` · ${v.scheduledAgeMonths} months` : ''}`;
-          return item(name, sub, statusPill(v.status));
+          return item(name, sub, statusPill(_vs));
         }).join('') : `<div class="empty">No vaccine records available.</div>`}
       `)}
 
